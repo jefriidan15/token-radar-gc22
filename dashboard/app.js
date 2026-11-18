@@ -13,7 +13,7 @@
   var rows = D.rows.slice();
   var bySlug = {};
   rows.forEach(function (r) { bySlug[r.slug] = r; });
-  var maxImplied = rows.length ? rows[0].implied_value_usd : 1;
+  var topImplied = rows.length ? rows[0].implied_value_usd : 1;
 
   /** $1,234,567,890 -> $1.23B; $45,600,000 -> $45.60M. */
   function money(n) {
@@ -77,10 +77,10 @@
     return acc;
   }, []));
 
-  var sortKey = 'rank';
-  var sortDir = 1;
+  var sortBy = 'rank';
+  var sortFlip = 1;
 
-  function filtered() {
+  function visibleRows() {
     var q = $('q').value.trim().toLowerCase();
     var cat = $('cat').value;
     var chain = $('chain').value;
@@ -90,26 +90,26 @@
       if (chain && r.chains.indexOf(chain) < 0) return false;
       return true;
     });
-    var key = sortKey;
+    var by = sortBy;
     out.sort(function (a, b) {
-      var d = 0;
-      if (key === 'rank') d = a.rank - b.rank;
-      else if (key === 'implied') d = a.implied_value_usd - b.implied_value_usd;
-      else if (key === 'tvl') d = a.tvl_usd - b.tvl_usd;
-      else if (key === 'growth') d = (a.change_7d || 0) - (b.change_7d || 0);
-      else if (key === 'age') d = (a.age_days || 0) - (b.age_days || 0);
-      else if (key === 'name') d = a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
-      if (d === 0) d = a.rank - b.rank;
-      return key === 'rank' ? d * sortDir : -d * sortDir;
+      var diff = 0;
+      if (by === 'rank') diff = a.rank - b.rank;
+      else if (by === 'implied') diff = a.implied_value_usd - b.implied_value_usd;
+      else if (by === 'tvl') diff = a.tvl_usd - b.tvl_usd;
+      else if (by === 'growth') diff = (a.change_7d || 0) - (b.change_7d || 0);
+      else if (by === 'age') diff = (a.age_days || 0) - (b.age_days || 0);
+      else if (by === 'name') diff = a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+      if (diff === 0) diff = a.rank - b.rank;
+      return by === 'rank' ? diff * sortFlip : -diff * sortFlip;
     });
     return out;
   }
 
   function render() {
-    var list = filtered();
+    var list = visibleRows();
     var html = list.map(function (r) {
-      var share = Math.max(2, Math.round((r.implied_value_usd / maxImplied) * 100));
-      return '<tr data-slug="' + esc(r.slug) + '"' + (selected === r.slug ? ' class="sel"' : '') + '>' +
+      var share = Math.max(2, Math.round((r.implied_value_usd / topImplied) * 100));
+      return '<tr data-slug="' + esc(r.slug) + '"' + (openSlug === r.slug ? ' class="sel"' : '') + '>' +
         '<td>' + r.rank + '</td>' +
         '<td><span class="nm">' + esc(r.name) + '</span><br><span class="sl">' + esc(r.slug) + '</span></td>' +
         '<td>' + esc(r.category || '—') + '</td>' +
@@ -126,12 +126,12 @@
     $('shown').textContent = list.length + ' of ' + rows.length + ' shown';
   }
 
-  // Detail view: model breakdown plus the farm plan.
-  var selected = null;
+  // Detail view: the model breakdown plus the farm plan.
+  var openSlug = null;
   function showDetail(slug) {
     var r = bySlug[slug];
     if (!r) { hideDetail(); return; }
-    selected = slug;
+    openSlug = slug;
     $('detail').hidden = false;
     $('d-name').textContent = '#' + r.rank + ' ' + r.name;
     $('d-meta').textContent =
@@ -140,22 +140,22 @@
       ' · tracked since ' + (r.listed_at || 'unknown') + ' · records no token';
     var base = r.tvl_usd * D.model.base_multiple;
     $('d-model').innerHTML =
-      cell('Base value', money(Math.round(base)), 'TVL × ' + D.model.base_multiple) +
-      cell('Growth', '×' + r.growth_multiplier.toFixed(2), '7-day change') +
-      cell('Maturity', '×' + r.maturity_multiplier.toFixed(2), ageText(r.age_days) + ' old') +
-      cell('Breadth', '×' + r.breadth_multiplier.toFixed(2), r.chains.length + ' chain' + (r.chains.length === 1 ? '' : 's')) +
-      cell('Implied value', money(r.implied_value_usd), 'rank #' + r.rank + ' of ' + rows.length);
+      metricCell('Base value', money(Math.round(base)), 'TVL × ' + D.model.base_multiple) +
+      metricCell('Growth', '×' + r.growth_multiplier.toFixed(2), '7-day change') +
+      metricCell('Maturity', '×' + r.maturity_multiplier.toFixed(2), ageText(r.age_days) + ' old') +
+      metricCell('Breadth', '×' + r.breadth_multiplier.toFixed(2), r.chains.length + ' chain' + (r.chains.length === 1 ? '' : 's')) +
+      metricCell('Implied value', money(r.implied_value_usd), 'rank #' + r.rank + ' of ' + rows.length);
     $('d-steps').innerHTML = r.farm_steps.map(function (s) {
       return '<li>' + esc(s) + '</li>';
     }).join('');
-    function cell(k, v, n) {
+    function metricCell(k, v, n) {
       return '<div class="model-cell"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div><div class="n">' + esc(n) + '</div></div>';
     }
     render();
     $('detail').scrollIntoView({ block: 'nearest' });
   }
   function hideDetail() {
-    selected = null;
+    openSlug = null;
     $('detail').hidden = true;
     render();
   }
@@ -169,17 +169,17 @@
     location.hash = 'detail=' + tr.getAttribute('data-slug');
   });
 
-  // Sorting: click a header, or use the sort select.
+  // Sorting: click a column header, or use the sort select.
   document.querySelectorAll('#board thead th[data-k]').forEach(function (th) {
     th.addEventListener('click', function () {
       var k = th.getAttribute('data-k');
-      if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = 1; }
-      $('sort').value = sortKey;
+      if (sortBy === k) sortFlip = -sortFlip; else { sortBy = k; sortFlip = 1; }
+      $('sort').value = sortBy;
       render();
     });
   });
   $('sort').addEventListener('change', function () {
-    sortKey = $('sort').value; sortDir = 1; render();
+    sortBy = $('sort').value; sortFlip = 1; render();
   });
   ['q', 'cat', 'chain'].forEach(function (id) {
     $(id).addEventListener('input', render);
@@ -195,7 +195,8 @@
       '<td class="num">' + pct(p.change_7d) + '</td></tr>';
   }).join('');
 
-  // Hash routing, so a filtered or detail view is a link: #detail=<slug>, #cat=<name>, #q=<text>.
+  // Hash routing, so a filtered view or a detail view is a link:
+  // #detail=<slug>, #cat=<name>, #q=<text>.
   function applyHash() {
     var h = location.hash.replace(/^#/, '');
     var params = {};
