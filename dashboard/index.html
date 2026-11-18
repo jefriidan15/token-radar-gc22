@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Launch Radar — pre-token protocols ranked by implied value</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div>
+      <h1>Token Launch Radar</h1>
+      <p class="sub">Pre-token protocols, ranked by the value a token would carry if the protocol's record stayed as it is. Snapshot <span id="asof">—</span> · <span id="counts">—</span></p>
+    </div>
+    <div class="badge">MODEL <b id="modelver">radar-2</b></div>
+  </div>
+</header>
+
+<main>
+  <section class="controls" aria-label="Filters">
+    <input id="q" type="search" placeholder="Search name or slug…" autocomplete="off">
+    <select id="cat" aria-label="Category"><option value="">All categories</option></select>
+    <select id="chain" aria-label="Chain"><option value="">All chains</option></select>
+    <select id="sort" aria-label="Sort by">
+      <option value="rank">Sort: rank</option>
+      <option value="implied">Sort: implied value</option>
+      <option value="tvl">Sort: TVL</option>
+      <option value="growth">Sort: 7-day change</option>
+      <option value="age">Sort: age</option>
+    </select>
+    <span id="shown" class="shown"></span>
+  </section>
+
+  <section id="detail" class="detail" hidden>
+    <div class="detail-head">
+      <h2 id="d-name">—</h2>
+      <button id="d-close" type="button" aria-label="Close detail">×</button>
+    </div>
+    <p id="d-meta" class="d-meta"></p>
+    <div class="model-grid" id="d-model"></div>
+    <h3>Farm plan — what to do, what it costs, how long it takes</h3>
+    <ol id="d-steps" class="steps"></ol>
+    <p class="warn">This board does not predict whether or when a token is issued. “Records no token” means the snapshot's DefiLlama record carries none — a protocol on this board may still have a token its record does not carry. Never pay to claim anything.</p>
+  </section>
+
+  <section class="boardwrap">
+    <table id="board">
+      <thead><tr>
+        <th data-k="rank">#</th><th data-k="name">Protocol</th><th data-k="category">Category</th>
+        <th data-k="chains">Chains</th><th data-k="tvl" class="num">TVL</th><th data-k="growth" class="num">7d</th>
+        <th data-k="age" class="num">Age</th><th data-k="implied" class="num">Implied value</th><th class="num">Score</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p id="empty" class="empty" hidden>No protocol matches this filter.</p>
+  </section>
+
+  <section class="live">
+    <h2>Already trading — the market's own values, kept apart</h2>
+    <p class="sub">These protocols record a token, so the board never ranks them. Their market caps are shown for comparison only.</p>
+    <table id="livetable">
+      <thead><tr><th>Protocol</th><th>Category</th><th class="num">TVL</th><th class="num">Market cap</th><th class="num">7d</th></tr></thead>
+      <tbody id="liverows"></tbody>
+    </table>
+  </section>
+
+  <section class="method">
+    <h2>How the value is built</h2>
+    <p id="formula">—</p>
+    <p>TVL is the protocol's locked value in the snapshot. Growth is its seven-day TVL change, clamped to −50%…+150%. Maturity is logarithmic in days since the snapshot first tracked the protocol, so three years of running scores near the top without crushing a young protocol to zero. Breadth rewards running on more chains, at most +20%. The watchlist — every protocol at or above $50,000,000 of TVL that records no token — is the floor, never the ceiling: the board also ranks every other pre-token protocol the snapshot carries.</p>
+  </section>
+</main>
+
+<footer>Token Launch Radar · model <span class="modelver2">radar-2</span> · data: DefiLlama public API, sealed snapshot <span id="asof2">—</span> · implied values are this entry's own claim, never a prediction.</footer>
+
+<script src="../data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
